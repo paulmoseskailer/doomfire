@@ -1,9 +1,13 @@
+#![no_std]
 use embedded_graphics::{
     geometry::Point,
     pixelcolor::{Rgb565, Rgb888},
     Drawable, Pixel,
 };
 use rand::{Rng, SeedableRng};
+
+const FIRE_WIDTH: usize = 128;
+const FIRE_HEIGHT: usize = 96;
 
 /// RGBA color pallet
 const PALLET: [[u8; 4]; 37] = [
@@ -47,25 +51,19 @@ const PALLET: [[u8; 4]; 37] = [
 ];
 
 pub struct DoomFire {
-    fire_pixels: Vec<usize>,
-    width: usize,
-    height: usize,
+    fire_pixels: [u8; FIRE_WIDTH * FIRE_HEIGHT],
 }
 
 impl DoomFire {
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new() -> Self {
         // set the whole screen to color 0
-        let mut fire_pixels = vec![0; width * height];
+        let mut fire_pixels = [0; FIRE_WIDTH * FIRE_HEIGHT];
         // set the bottom line to color 36
-        for i in 0..width {
-            fire_pixels[(height - 1) * width + i] = 36;
+        for i in 0..FIRE_WIDTH {
+            fire_pixels[(FIRE_HEIGHT - 1) * FIRE_WIDTH + i] = 36;
         }
 
-        DoomFire {
-            fire_pixels,
-            width,
-            height,
-        }
+        DoomFire { fire_pixels }
     }
 
     /// Update the internal state of each pixel for the Doom Fire effect.
@@ -76,17 +74,18 @@ impl DoomFire {
         // cookbook](https://rust-random.github.io/book/guide-start.html#fixed-seed-rngs)
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(666);
 
-        for x in 0..self.width {
-            for y in 1..self.height {
-                let src = y * self.width + x;
+        for x in 0..FIRE_WIDTH {
+            for y in 1..FIRE_HEIGHT {
+                let src = y * FIRE_WIDTH + x;
                 let pixel = self.fire_pixels[src];
 
                 if pixel == 0 {
-                    self.fire_pixels[src - self.width] = 0;
+                    self.fire_pixels[src - FIRE_WIDTH] = 0;
                 } else {
                     let rand_idx = (rng.gen_range(0.0, 3.0) + 0.5) as usize & 3;
                     let dst = src - rand_idx + 1;
-                    self.fire_pixels[dst - self.width] = pixel - (rand_idx & 1);
+                    self.fire_pixels[dst.saturating_sub(FIRE_WIDTH)] =
+                        pixel - ((rand_idx % 256) as u8 & 1);
                 }
             }
         }
@@ -97,14 +96,14 @@ impl DoomFire {
     /// This function will fill the frame with RGBA pixels
     pub fn draw_to_byte_slice(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            pixel.copy_from_slice(&PALLET[self.fire_pixels[i]])
+            pixel.copy_from_slice(&PALLET[self.fire_pixels[i] as usize])
         }
     }
 }
 
 impl Default for DoomFire {
     fn default() -> Self {
-        DoomFire::new(320, 168)
+        DoomFire::new()
     }
 }
 
@@ -113,17 +112,17 @@ impl Drawable for DoomFire {
 
     type Output = ();
 
-    fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
+    async fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
     where
         D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
     {
         let colors = self.fire_pixels.iter().map(|i| {
-            let colors = &PALLET[*i][0..3];
+            let colors = &PALLET[*i as usize][0..3];
             Rgb565::from(Rgb888::new(colors[0], colors[1], colors[2]))
         });
-        let points = (0..self.height)
-            .flat_map(|y| (0..self.width).map(move |x| Point::new(x as i32, y as i32)));
+        let points = (0..FIRE_HEIGHT)
+            .flat_map(|y| (0..FIRE_WIDTH).map(move |x| Point::new(x as i32, y as i32)));
         let pixels = points.zip(colors).map(|(p, c)| Pixel(p, c));
-        target.draw_iter(pixels)
+        target.draw_iter(pixels).await
     }
 }

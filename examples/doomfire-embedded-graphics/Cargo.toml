@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-embedded-graphics = "0.8.1"
-embedded-graphics-simulator = "0.7.0"
+embedded-graphics = {version = "0.8.1", default-features = false, features = ["async_draw"] }
+embedded-graphics-simulator = {version = "0.7.0", default-features = false, features = ["async_draw", "with-sdl"] }
 doomfire = {path = "../../"}
+tokio = {version = "1.44.2", features = ["full"]}
+
+[patch.crates-io]
+embedded-graphics = { git = "https://github.com/paulmoseskailer/embedded-graphics.git" }
+embedded-graphics-core = { git = "https://github.com/paulmoseskailer/embedded-graphics.git" }
+embedded-graphics-simulator = { git = "https://github.com/paulmoseskailer/simulator.git" }

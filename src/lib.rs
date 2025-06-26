@@ -1,4 +1,5 @@
 #![no_std]
+
 use embedded_graphics::{
     geometry::Point,
     pixelcolor::{Rgb565, Rgb888},
@@ -8,6 +9,12 @@ use rand::{Rng, SeedableRng};
 
 const FIRE_WIDTH: usize = 128;
 const FIRE_HEIGHT: usize = 96;
+
+#[cfg(all(feature = "sync", feature = "async"))]
+compile_error!("cannot be sync and async");
+
+#[cfg(not(any(feature = "sync", feature = "async")))]
+compile_error!("have to be either sync or async");
 
 /// RGBA color pallet
 const PALLET: [[u8; 4]; 37] = [
@@ -112,6 +119,7 @@ impl Drawable for DoomFire {
 
     type Output = ();
 
+    #[maybe_async::maybe_async]
     async fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
     where
         D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,

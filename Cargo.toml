@@ -14,10 +14,16 @@ categories = ["game-development", "games", "graphics", "multimedia", "rendering"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-graphics = {version = "0.8.1", default-features = false, features = ["async_draw"] }
+embedded-graphics = {version = "0.8.1", default-features = false }
+maybe-async = "0.2.10"
 rand = { version = "0.7.3", default-features = false, features = ["alloc"] }
 rand_chacha = { version = "0.2.2", default-features = false }
 
 [patch.crates-io]
 embedded-graphics = { git = "https://github.com/paulmoseskailer/embedded-graphics.git" }
 embedded-graphics-core = { git = "https://github.com/paulmoseskailer/embedded-graphics.git" }
+
+[features]
+default = []
+async = ["embedded-graphics/async_draw"]
+sync = ["maybe-async/is_sync"]

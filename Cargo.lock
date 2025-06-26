@@ -19,6 +19,7 @@ name = "doomfire"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "maybe-async",
  "rand",
  "rand_chacha",
 ]
